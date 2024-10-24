@@ -1,9 +1,11 @@
 ﻿using Dapper;
 using Npgsql;
+using Stocks.Realtime.Api.Realtime;
 
 namespace Stocks.Realtime.Api.Stocks;
 
 internal sealed class StockService(
+    ActiveTickerManager activeTickerManager,
     NpgsqlDataSource dataSource,
     StocksClient stocksClient,
     ILogger<StockService> logger)
@@ -16,6 +18,7 @@ internal sealed class StockService(
             StockPriceResponse? dbPrice = await GetLatestPriceFromDatabase(ticker);
             if (dbPrice is not null)
             {
+                activeTickerManager.AddTicker(ticker);
                 return dbPrice;
             }
 
@@ -30,6 +33,8 @@ internal sealed class StockService(
 
             // Save the new price to the database
             await SavePriceToDatabase(apiPrice);
+
+            activeTickerManager.AddTicker(ticker);
 
             return apiPrice;
         }
